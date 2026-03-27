@@ -1,0 +1,16 @@
+[project]
+name = "lpr-vpn-bot"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aiogram>=3.26.0",
+    "aiogram-dialog>=2.6.0",
+    "fluentogram>=1.2.1",
+    "httpx<0.28.0",
+    "loguru>=0.7.0",
+    "pydantic-settings>=2.13.1",
+    "remnawave>=2.6.3",
+    "toml>=0.10.2",
+]

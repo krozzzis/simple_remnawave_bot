@@ -1,0 +1,14 @@
+.venv
+__pycache__
+*.pyc
+.env
+.git
+.gitignore
+Dockerfile
+docker-compose*
+.venv
+.direnv
+flake*
+uv.lock
+*.md
+users.toml
