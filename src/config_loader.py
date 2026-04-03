@@ -9,13 +9,19 @@ PROJECT_ROOT = Path(__file__).parent.parent
 
 
 class BotConfig(BaseSettings):
-    model_config = SettingsConfigDict(env_file=str(PROJECT_ROOT / ".env"))
+    model_config = SettingsConfigDict(env_file=str(PROJECT_ROOT / ".env"), extra="ignore")
 
     bot_token: str
-    secret_code: str
+    secret_code: str = Field(validation_alias="SECRET_CODE", default="")
+    secret_codes: str = Field(validation_alias="SECRET_CODES", default="")
     remnawave_api_url: str
     remnawave_api_key: str
     default_squad_name: str = "Default Squad"
+
+    @property
+    def codes_list(self) -> list[str]:
+        codes = self.secret_codes + "," + self.secret_code
+        return [c.strip() for c in codes.split(",") if c.strip()]
 
 
 class UserDatabase:
@@ -33,7 +39,13 @@ class UserDatabase:
             self._last_modified = os.path.getmtime(self.path)
             with open(self.path, "r") as f:
                 data = toml.load(f)
-                self.users = {str(k): str(v) for k, v in data.get("users", {}).items()}
+                users_data = data.get("users", {})
+                self.users = {}
+                for k, v in users_data.items():
+                    if isinstance(v, str):
+                        self.users[str(k)] = {"uuid": v, "code": "unknown"}
+                    else:
+                        self.users[str(k)] = v
 
     def reload_if_changed(self):
         if not os.path.exists(self.path):
@@ -50,10 +62,13 @@ class UserDatabase:
 
     def get_user_uuid(self, telegram_id: int) -> Optional[str]:
         self.reload_if_changed()
-        return self.users.get(str(telegram_id))
+        user_data = self.users.get(str(telegram_id))
+        if isinstance(user_data, dict):
+            return user_data.get("uuid")
+        return user_data
 
-    def add_user(self, telegram_id: int, uuid: str):
-        self.users[str(telegram_id)] = uuid
+    def add_user(self, telegram_id: int, uuid: str, code: str = "unknown"):
+        self.users[str(telegram_id)] = {"uuid": uuid, "code": code}
         self.save()
 
     def has_user(self, telegram_id: int) -> bool:

@@ -17,21 +17,27 @@ async def on_code_input(message: types.Message, message_input: MessageInput, man
     service = manager.middleware_data.get("service")
     
     code = message.text.strip()
-    if code != config.secret_code:
+    if code not in config.codes_list:
         await message.answer(get_text("invalid-code"))
         return
     
     telegram_id = message.from_user.id
+    first_name = message.from_user.first_name
+    username = message.from_user.username
     
-    user_uuid = await service.get_or_create_user(telegram_id)
-    db.add_user(telegram_id, user_uuid)
+    user_uuid = await service.get_or_create_user(telegram_id, first_name, username, code)
+    db.add_user(telegram_id, user_uuid, code)
     
     sub_url = await service.get_subscription_url(user_uuid)
-    await message.answer(
-        f"{get_text('success-dialog')}\n\n<code>{sub_url}</code>",
-        parse_mode="HTML"
-    )
+    manager.dialog_data["sub_url"] = sub_url
     await manager.switch_to(ActivationStates.success)
+
+
+async def get_success_data(dialog_manager: DialogManager, **kwargs):
+    return {
+        "success_dialog_text": get_text("success-dialog"),
+        "sub_url": dialog_manager.dialog_data.get("sub_url", "")
+    }
 
 
 activation_dialog = Dialog(
@@ -41,7 +47,9 @@ activation_dialog = Dialog(
         state=ActivationStates.waiting_code,
     ),
     Window(
-        Const(get_text("success-dialog")),
+        Format("{success_dialog_text}\n\n<code>{sub_url}</code>"),
         state=ActivationStates.success,
+        getter=get_success_data,
+        parse_mode="HTML"
     ),
 )

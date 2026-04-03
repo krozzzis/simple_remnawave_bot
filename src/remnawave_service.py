@@ -31,7 +31,7 @@ class RemnawaveService:
         
         return None
     
-    async def get_or_create_user(self, telegram_id: int) -> str:
+    async def get_or_create_user(self, telegram_id: int, first_name: str, tg_username: Optional[str], activation_code: str) -> str:
         username = f"tg_{telegram_id}"
         
         try:
@@ -40,10 +40,14 @@ class RemnawaveService:
         except NotFoundError:
             default_squad_uuid = await self._get_default_squad_uuid()
             
+            tg_handle = f"@{tg_username}" if tg_username else "No Username"
+            desc = f"Name: {first_name}, Username: {tg_handle}, Code: {activation_code}"
+            
             create_request = CreateUserRequestDto(
                 username=username,
                 expire_at=datetime.utcnow() + timedelta(days=365),
-                active_internal_squads=[default_squad_uuid] if default_squad_uuid else None
+                active_internal_squads=[default_squad_uuid] if default_squad_uuid else None,
+                description=desc
             )
             response = await self.sdk.users.create_user(body=create_request)
             return response.short_uuid
